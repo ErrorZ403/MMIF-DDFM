@@ -390,19 +390,17 @@ class DDIM(SpacedDiffusion):
 
         out = self.p_mean_variance(model, x, t)
 
-
-
-        x_0_hat_ycbcr = rgb_to_ycbcr(out['pred_xstart'])/255 # (-1,1)
-        x_0_hat_y = torch.unsqueeze((x_0_hat_ycbcr[:,0,:,:]),1)
-        assert x_0_hat_y.shape[1]==1
+        x_0_hat_ycbcr = out['pred_xstart']
+        
+        x_0_hat_y = x_0_hat_ycbcr
 
         x_0_hat_y_BF, bfHP = EM_onestep(f_pre = x_0_hat_y,
                                             I = infrared,
                                             V = visible,
                                             HyperP = bfHP,lamb=lamb,rho=rho)
 
-        x_0_hat_ycbcr[:,0,:,:] = x_0_hat_y_BF
-        out['pred_xstart'] = ycbcr_to_rgb(x_0_hat_ycbcr*255)
+        x_0_hat_ycbcr = x_0_hat_y_BF
+        out['pred_xstart'] = x_0_hat_ycbcr #ycbcr_to_rgb(x_0_hat_ycbcr*255)
 
 
         eps = self.predict_eps_from_x_start(x, t, out['pred_xstart'])

@@ -17,6 +17,7 @@ def image_read(path, mode='RGB'):
     assert mode == 'RGB' or mode == 'GRAY' or mode == 'YCrCb', 'mode error'
     if mode == 'RGB':
         img = cv2.cvtColor(img_BGR, cv2.COLOR_BGR2RGB)
+        img = np.transpose(img, (2, 0, 1))
     elif mode == 'GRAY':  
         img = np.round(cv2.cvtColor(img_BGR, cv2.COLOR_BGR2GRAY))
     elif mode == 'YCrCb':
@@ -69,8 +70,8 @@ if __name__ == '__main__':
 
     i=0
     for img_name in os.listdir(os.path.join(test_folder,"ir")):
-        inf_img = image_read(os.path.join(test_folder,"vi",img_name),mode='GRAY')[np.newaxis,np.newaxis, ...]/255.0 
-        vis_img = image_read(os.path.join(test_folder,"ir",img_name), mode='GRAY')[np.newaxis,np.newaxis, ...]/255.0 
+        inf_img = image_read(os.path.join(test_folder,"vi",img_name),mode='RGB')[np.newaxis, ...]/255.0 
+        vis_img = image_read(os.path.join(test_folder,"ir",img_name), mode='RGB')[np.newaxis, ...]/255.0 
 
         inf_img = inf_img*2-1
         vis_img = vis_img*2-1
@@ -90,15 +91,14 @@ if __name__ == '__main__':
         # Sampling
         seed = 3407
         torch.manual_seed(seed)
-        x_start = torch.randn((inf_img.repeat(1, 3, 1, 1)).shape, device=device)  
+        x_start = torch.randn(inf_img.shape, device=device)  
 
         with torch.no_grad():
             sample = sample_fn(x_start=x_start, record=True, I = inf_img, V = vis_img, save_root=out_path, img_index = os.path.splitext(img_name)[0], lamb=0.5,rho=0.001)
 
         sample= sample.detach().cpu().squeeze().numpy()
         sample=np.transpose(sample, (1,2,0))
-        sample=cv2.cvtColor(sample,cv2.COLOR_RGB2YCrCb)[:,:,0]
         sample=(sample-np.min(sample))/(np.max(sample)-np.min(sample))
-        sample=((sample)*255)
+        sample=((sample)*255).astype(np.uint8)
         imsave(os.path.join(os.path.join(out_path, 'recon'), "{}.png".format(img_name.split(".")[0])),sample)
         i = i+1
